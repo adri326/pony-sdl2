@@ -1,3 +1,4 @@
+use "lib:SDL2_gfx"
 use "../"
 
 use @boxRGBA[I32](surface: RawSDLRenderer ref, x: I16, y: I16, x': I16, y': I16, red: U8, green: U8, blue: U8, alpha: U8)
@@ -7,6 +8,7 @@ use @aaellipseRGBA[I32](surface: RawSDLRenderer ref, x: I16, y: I16, r: I16, r':
 use @filledCircleRGBA[I32](surface: RawSDLRenderer ref, x: I16, y: I16, r: I16, red: U8, green: U8, blue: U8, alpha: U8)
 use @circleRGBA[I32](surface: RawSDLRenderer ref, x: I16, y: I16, r: I16, red: U8, green: U8, blue: U8, alpha: U8)
 use @aacircleRGBA[I32](surface: RawSDLRenderer ref, x: I16, y: I16, r: I16, red: U8, green: U8, blue: U8, alpha: U8)
+use @pixelRGBA[I32](surface: RawSDLRenderer ref, x: I16, y: I16, red: U8, green: U8, blue: U8, alpha: U8)
 
 primitive SDLgfx
   fun render_box_rgba(renderer: RawSDLRenderer ref, x: I16, y: I16, x': I16, y': I16, r: U8, g: U8, b: U8, a: U8): Bool =>
@@ -29,3 +31,6 @@ primitive SDLgfx
 
   fun render_aa_circle(renderer: RawSDLRenderer ref, x: I16, y: I16, radius: I16, r: U8, g: U8, b: U8, a: U8): Bool =>
     @aacircleRGBA(renderer, x, y, radius, r, g, b, a) == 0
+
+  fun render_pixel(renderer: RawSDLRenderer ref, x: I16, y: I16, r: U8, g: U8, b: U8, a: U8): Bool =>
+    @pixelRGBA(renderer, x, y, r, g, b, a) == 0

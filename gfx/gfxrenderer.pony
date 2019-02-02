@@ -53,6 +53,10 @@ class SDLgfxRenderer
       SDLgfx.render_circle(renderer.get_raw(), x, y, r, color'.red(), color'.green(), color'.blue(), color'.alpha())
     end
 
+  fun ref pixel(x: I16, y: I16, color: (SDLColor val | None) = None) =>
+    let color' = _resolve_color(color)
+    SDLgfx.render_pixel(renderer.get_raw(), x, y, color'.red(), color'.green(), color'.blue(), color'.alpha())
+
   fun _resolve_color(color: (SDLColor val | None)): SDLColor val =>
     match color
     | let c: SDLColor val => c

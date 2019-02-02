@@ -1,7 +1,9 @@
 use "lib:SDL2"
-use "lib:SDL2_gfx"
 
 use @SDL_Init[I32](flags: U32)
+use @SDL_WasInit[I32]()
+use @SDL_Quit[None]()
+use @SDL_GetVersion[None](version: MaybePointer[SDLVersion])
 use @SDL_GetError[Pointer[U8 val]]()
 use @SDL_CreateWindow[_SDLWindow tag](name: Pointer[U8 val] tag, x: I32, y: I32, w: I32, h: I32, flags: U32)
 use @SDL_CreateRenderer[RawSDLRenderer ref](window: _SDLWindow tag, index: I32, flags: U32)
@@ -12,13 +14,40 @@ use @SDL_SetRenderDrawColor[I32](renderer: RawSDLRenderer ref, red: U8, green: U
 
 struct _SDLWindow
 struct RawSDLRenderer
+
+struct SDLVersion
+  let major: U8
+  let minor: U8
+  let patch: U8
+
+  new create(major': U8, minor': U8, patch': U8) =>
+    major = major'
+    minor = minor'
+    patch = patch'
+
 // struct _SDLSurface
 
 primitive SDL
   fun init(flags: (Array[SDLInitFlag] val | U32) = 100000)? =>
-    if not _sdl_init(flags) then
-      error
+    if not was_init() then
+      if not _sdl_init(flags) then
+        error
+      end
     end
+
+  fun was_init(): Bool =>
+    @SDL_WasInit() != 0
+
+  fun quit() =>
+    if was_init() then @SDL_Quit() end
+
+  fun _final() =>
+    quit()
+
+  fun version(): (U8, U8, U8) =>
+    var v = SDLVersion(0, 0, 0)
+    @SDL_GetVersion(MaybePointer[SDLVersion](v))
+    (v.major, v.minor, v.patch)
 
   fun get_error(): String =>
     recover String.from_cstring(@SDL_GetError()) end

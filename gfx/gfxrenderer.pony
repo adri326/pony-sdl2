@@ -4,17 +4,20 @@ class SDLgfxRenderer
   let renderer: SDLRenderer
   var antialising: Bool = true
 
-  fun ref set_draw_color(color: SDLColor val): Bool =>
-    renderer.set_draw_color(color)
-
-  fun get_draw_color(): SDLColor val =>
-    renderer.get_draw_color()
-
-  fun ref clear(): Bool =>
-    renderer.clear()
-
-  fun ref present() =>
-    renderer.present()
+  // fun ref set_draw_color(color: SDLColor val): Bool =>
+  //   renderer.set_draw_color(color)
+  //
+  // fun get_draw_color(): SDLColor val =>
+  //   renderer.get_draw_color()
+  //
+  // fun ref clear(): Bool =>
+  //   renderer.clear()
+  //
+  // fun ref present() =>
+  //   renderer.present()
+  //
+  new create(renderer': SDLRenderer ref) =>
+    renderer = renderer'
 
   fun ref enable_antialising() =>
     antialising = true
@@ -22,8 +25,8 @@ class SDLgfxRenderer
   fun ref disable_antialising() =>
     antialising = false
 
-  new create(renderer': SDLRenderer ref) =>
-    renderer = renderer'
+  fun ref apply(): SDLRenderer ref =>
+    renderer
 
   fun ref fill_rectangle(x: I16, y: I16, width: I16, height: I16, color: (SDLColor val | None) = None) =>
     let color' = _resolve_color(color)

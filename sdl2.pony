@@ -14,16 +14,24 @@ use @SDL_SetRenderDrawColor[I32](renderer: SDLRendererRaw ref, red: U8, green: U
 
 use @SDL_BlitSurface[I32](src: SDLSurfaceRaw box, srcrect: SDLRectRaw, dst: SDLSurfaceRaw ref, dstrect: SDLRectRaw)
 use @SDL_CreateTextureFromSurface[SDLTextureRaw](renderer: SDLRendererRaw box, surface: SDLSurfaceRaw box)
-use @SDL_RenderCopy[I32](renderer: SDLRendererRaw ref, texture: SDLTextureRaw, srcrect: SDLRectRaw, dstrect: SDLRectRaw)
+use @SDL_RenderCopy[I32](renderer: SDLRendererRaw ref, texture: SDLTextureRaw box, srcrect: SDLRectRaw, dstrect: SDLRectRaw)
+
+use @SDL_DestroyTexture[None](texture: SDLTextureRaw box)
+use @SDL_FreeSurface[None](surface: SDLSurfaceRaw box)
+use @SDL_DestroyWindow[None](texture: SDLWindowRaw box)
+
+use @SDL_SetTextureBlendMode[I32](texture: SDLTextureRaw ref, blendmode: I32)
+use @SDL_GetTextureBlendMode[I32](texture: SDLTextureRaw ref, blendmode: Pointer[I32])
+use @SDL_SetTextureAlphaMod[I32](texture: SDLTextureRaw ref, alpha: U8)
+use @SDL_GetTextureAlphaMod[I32](texture: SDLTextureRaw ref, alpha: Pointer[U8])
+use @SDL_SetTextureColorMod[I32](texture: SDLTextureRaw ref, red: U8, green: U8, blue: U8)
+use @SDL_GetTextureColorMod[I32](texture: SDLTextureRaw ref, red: Pointer[U8], green: Pointer[U8], blue: Pointer[U8])
 
 primitive _SDLWindow
 type SDLWindowRaw is Pointer[_SDLWindow]
 
 struct _SDLRendererRaw
 type SDLRendererRaw is Pointer[_SDLRendererRaw]
-
-struct _SDLTextureRaw
-type SDLTextureRaw is Pointer[_SDLTextureRaw]
 
 struct SDLVersion
   let major: U8
@@ -149,6 +157,57 @@ primitive SDL
   fun set_render_draw_color(renderer: SDLRendererRaw ref, r: U8, g: U8, b: U8, a: U8 = 255): Bool =>
     @SDL_SetRenderDrawColor(renderer, r, g, b, a) == 0
 
+  fun set_texture_blend_mode(texture: SDLTextureRaw ref, blend_mode: SDLBlendMode): Bool =>
+    @SDL_SetTextureBlendMode(texture, match blend_mode
+    | None => 0
+    | let x: (SDLBlend | SDLAdd | SDLMod) => x.blend_mode()
+    end
+    ) == 0
+
+  fun get_texture_blend_mode(texture: SDLTextureRaw): SDLBlendMode =>
+    var blend_mode: I32 = 0
+    if @SDL_GetTextureBlendMode(texture, addressof blend_mode) == 0 then
+      match blend_mode
+      | 0 => None
+      | 1 => SDLBlend
+      | 2 => SDLAdd
+      | 3 => SDLMod
+      end
+    else None end
+
+  fun set_texture_alpha_mod(texture: SDLTextureRaw ref, alpha: U8): Bool =>
+    @SDL_SetTextureAlphaMod(texture, alpha) == 0
+
+  fun get_texture_alpha_mod(texture: SDLTextureRaw ref): U8 =>
+    var alpha: U8 = 0
+    if @SDL_GetTextureAlphaMod(texture, addressof alpha) == 0 then
+      alpha
+    else 255 end
+
+  fun set_texture_color_mod(texture: SDLTextureRaw ref, red: U8, green: U8, blue: U8): Bool =>
+    @SDL_SetTextureColorMod(texture, red, green, blue) == 0
+
+  fun get_texture_color_mod(texture: SDLTextureRaw ref): (U8, U8, U8) =>
+    var red: U8 = 0
+    var green: U8 = 0
+    var blue: U8 = 0
+    if @SDL_GetTextureColorMod(texture, addressof red, addressof green, addressof blue) == 0 then
+      (red, green, blue)
+    else (255, 255, 255) end
+
+  fun blit_surface(surface: SDLSurfaceRaw ref, surface': SDLSurfaceRaw ref, from: (SDLRect | (I32, I32, I32, I32) | None), to: (SDLRect | (I32, I32, I32, I32) | None)): Bool =>
+    let from' = match from
+    | let rect: SDLRect => rect
+    | (let x: I32, let y: I32, let width: I32, let height: I32) => SDLRect(x, y, width, height)
+    | None => SDLRect.none()
+    end
+    let to' = match to
+    | let rect: SDLRect => rect
+    | (let x: I32, let y: I32, let width: I32, let height: I32) => SDLRect(x, y, width, height)
+    | None => SDLRect.none()
+    end
+    @SDL_BlitSurface(surface, from'.get_raw(), surface', to'.get_raw()) == 0
+
 class SDLWindow
   let _window: SDLWindowRaw ref
   let width: I32
@@ -163,6 +222,9 @@ class SDLWindow
 
   fun ref get_raw(): SDLWindowRaw ref =>
     _window
+
+  fun _final() =>
+    @SDL_DestroyWindow(_window)
 
 class SDLColor
   let _r: U8
@@ -197,20 +259,16 @@ class SDLSurface
     _raw = raw
 
   fun ref get_raw(): SDLSurfaceRaw ref =>
+    """
+    **Warning:** Do *not* store this value, it will get destroyed if this instance of `SDLSurface` gets discarded!
+    """
     _raw
 
-  fun blit(surface: SDLSurface, from: (SDLRect | (I32, I32, I32, I32) | None), to: (SDLRect | (I32, I32, I32, I32) | None)): Bool =>
-    let from' = match from
-    | let rect: SDLRect => rect
-    | (let x: I32, let y: I32, let width: I32, let height: I32) => SDLRect(x, y, width, height)
-    | None => SDLRect.none()
-    end
-    let to' = match to
-    | let rect: SDLRect => rect
-    | (let x: I32, let y: I32, let width: I32, let height: I32) => SDLRect(x, y, width, height)
-    | None => SDLRect.none()
-    end
-    @SDL_BlitSurface(_raw, from'.get_raw(), surface.get_raw(), to'.get_raw()) == 0
+  fun ref blit(surface: SDLSurface ref, from: (SDLRect | (I32, I32, I32, I32) | None), to: (SDLRect | (I32, I32, I32, I32) | None)): Bool =>
+    SDL.blit_surface(_raw, surface.get_raw(), from, to)
+
+  fun _final() =>
+    @SDL_FreeSurface(_raw)
 
 type SDLSurfaceRaw is (Pointer[_SDLSurface])
 
@@ -264,11 +322,72 @@ class SDLRect
 //   let height: I32
 //   let pitch: I32
 
+struct _SDLTextureRaw
+type SDLTextureRaw is Pointer[_SDLTextureRaw]
+
 class SDLTexture
   let _raw: SDLTextureRaw ref
+  var alpha: U8
+  var blend_mode: SDLBlendMode
+  var color_multiply: (U8, U8, U8)
 
   new create(raw: SDLTextureRaw ref) =>
     _raw = raw
+    blend_mode = SDL.get_texture_blend_mode(raw)
+    alpha = SDL.get_texture_alpha_mod(raw)
+    color_multiply = SDL.get_texture_color_mod(raw)
 
   fun ref get_raw(): SDLTextureRaw ref =>
+    """
+    **Warning:** do *not* store the raw value, if the `SDLTexture` instance gets discarded, the raw value will be destroyed aswell!
+    """
     _raw
+
+  fun ref set_blend_mode(blend_mode': SDLBlendMode): Bool =>
+    if not (blend_mode is blend_mode') then
+      blend_mode = blend_mode'
+      SDL.set_texture_blend_mode(_raw, blend_mode)
+    else true end
+
+  fun ref set_alpha_mod(alpha': U8): Bool =>
+    if alpha != alpha' then
+      alpha = alpha'
+      SDL.set_texture_alpha_mod(_raw, alpha)
+    else true end
+
+  fun ref set_color_mod(color: (SDLColor | (U8, U8, U8))): Bool =>
+    let color' = match color
+    | let c: SDLColor => (c.red(), c.green(), c.blue())
+    | (let r': U8, let g': U8, let b': U8) => (r', g', b')
+    end
+    if (color'._1 != color_multiply._1) or (color'._2 != color_multiply._2) or (color'._3 != color_multiply._3) then
+      color_multiply = color'
+      SDL.set_texture_color_mod(_raw, color'._1, color'._2, color'._3)
+    else true end
+
+  fun _final() =>
+    @SDL_DestroyTexture[None](_raw)
+
+primitive SDLBlend
+  fun blend_mode(): I32 => 1
+
+primitive SDLAdd
+  fun blend_mode(): I32 => 2
+  fun operation(): I32 => 1
+
+primitive SDLMod
+  fun blend_mode(): I32 => 4
+
+primitive SDLSubstract
+  fun operation(): I32 => 2
+
+primitive SDLRevSubstract
+  fun operation(): I32 => 3
+
+primitive SDLMinimum
+  fun operation(): I32 => 4
+
+primitive SDLMaximum
+  fun operation(): I32 => 5
+
+type SDLBlendMode is (None | SDLBlend | SDLAdd | SDLMod)

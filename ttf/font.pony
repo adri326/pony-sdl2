@@ -17,9 +17,6 @@ class TTFFont
     _hinting = SDLttf.get_hinting(raw)
     _kerning = SDLttf.get_kerning(raw)
 
-  fun _final() =>
-    @TTF_CloseFont(_raw)
-
   fun get_style(): TTFStyle box =>
     _style
 
@@ -112,3 +109,6 @@ class TTFFont
 
   fun print(renderer: SDLRenderer ref, coordinates: (I32, I32), position: (TTFPositionHorizontal, TTFPositionVertical), text: String val, mode: TTFRenderMode, foreground: SDLColor val, background: SDLColor val = SDLColor(0, 0, 0)): Bool =>
     SDLttf.print(_raw, renderer, coordinates, position, text, mode, foreground, background)
+
+  fun _final() =>
+    SDLttf.close_font(_raw)

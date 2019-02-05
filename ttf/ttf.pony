@@ -207,6 +207,10 @@ primitive SDLttf
     | None => false
     end
 
+  fun close_font(font: TTFFontRaw box) =>
+    @TTF_CloseFont(font)
+
+
 primitive TTFHintingNormal
 primitive TTFHintingLight
 primitive TTFHintingMono
